@@ -1,6 +1,8 @@
 package com.example.geoimage;
 
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -9,12 +11,21 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import org.jetbrains.annotations.Contract;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private final List<Bitmap> bitmapList = new ArrayList<>();
     private Permissions permissions = Permissions.None;
+    private ImageAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
             this.permissions = this.permissions.and(Permissions.Coarse);
             requestFineLocationPermission();  // If Coarse permission is already granted, request for Fine
         }
+
+        ViewPager2 viewPager2 = findViewById(R.id.image_pager);
+        adapter = new ImageAdapter(this, bitmapList);
+        viewPager2.setAdapter(adapter);
     }
 
     private void requestFineLocationPermission() {
@@ -64,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // If Coarse permission is granted, request for Fine
-        if (permission == Permissions.Coarse && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (permission == Permissions.Coarse && grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             requestFineLocationPermission();
         }
     }
@@ -77,6 +93,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // When location changes, send the request to Flickr
+    public void locationChanged(double longitude, double latitude) {
+        Log.i("CIO", "locationChanged: " + longitude + ", " + latitude);
+        bitmapList.clear();
+        new AsyncFlickrJSONData(this::imageListReceived).execute(
+                "https://api.flickr.com/services/rest/?method=flickr.photos.search" +
+                        "&has_geo=true&format=json&per_page=10&api_key=" +
+                        BuildConfig.FLICKR_API_KEY + "&lat=" + latitude + "&lon=" + longitude);
+    }
+
+    public void imageListReceived(JSONObject json) {
+        if (json == null) {
+            return;
+        }
+        Log.i("CIO", "imageListReceived: " + json);
+        try {
+            JSONArray photos = json.getJSONObject("photos").getJSONArray("photo");
+            for (int i = 0; i < photos.length(); i++) {
+                JSONObject photo = photos.getJSONObject(i);
+                String id = photo.getString("id");
+                String secret = photo.getString("secret");
+                String serverId = photo.getString("server");
+                String url = "https://live.staticflickr.com/" + serverId + "/" + id + "_" + secret +
+                        ".jpg";
+                new AsyncFlickerBitmapLoader(this::imageReceived).executeOnExecutor(
+                        AsyncTask.THREAD_POOL_EXECUTOR, url);
+            }
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void imageReceived(Bitmap bitmap) {
+        if (bitmap == null) {
+            return;
+        }
+        bitmapList.add(bitmap);
+        adapter.notifyDataSetChanged();
+    }
+
     public enum Permissions {
         None(0b00), Coarse(0b01), Fine(0b10), Both(0b11);
 
@@ -84,15 +140,6 @@ public class MainActivity extends AppCompatActivity {
 
         Permissions(int value) {
             this.value = value;
-        }
-
-        public boolean bothActivated() {
-            return value == Both.value;
-        }
-
-        @Contract(pure = true)
-        public Permissions and(@NonNull Permissions other) {
-            return Permissions.from(value | other.value);
         }
 
         public static Permissions from(int value) {
@@ -107,6 +154,15 @@ public class MainActivity extends AppCompatActivity {
                 default:
                     return None;
             }
+        }
+
+        public boolean bothActivated() {
+            return value == Both.value;
+        }
+
+        @Contract(pure = true)
+        public Permissions and(@NonNull Permissions other) {
+            return Permissions.from(value | other.value);
         }
     }
 }

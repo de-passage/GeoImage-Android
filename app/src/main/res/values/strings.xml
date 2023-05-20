@@ -4,4 +4,5 @@
     <string name="latitude">Latitude</string>
     <string name="default_value">-</string>
     <string name="longitude">Longitude</string>
+    <string name="image_carousel">Image carousel</string>
 </resources>

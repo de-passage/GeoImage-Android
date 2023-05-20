@@ -63,5 +63,10 @@
 
         </LinearLayout>
 
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/image_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

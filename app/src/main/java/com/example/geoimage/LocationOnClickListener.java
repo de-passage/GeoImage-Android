@@ -52,6 +52,7 @@ public class LocationOnClickListener implements View.OnClickListener {
                     longitudeTextView.setText(String.valueOf(longitude));
                     locationButton.setEnabled(true);
                     locationManager.removeUpdates(this);
+                    mainActivity.locationChanged(longitude, latitude);
                 }
 
                 // Add other required methods for the LocationListener interface...
