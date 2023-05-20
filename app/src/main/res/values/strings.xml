@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">GeoImage</string>
+    <string name="get_coordinates_button">Get Coordinates</string>
+    <string name="latitude">Latitude</string>
+    <string name="default_value">-</string>
+    <string name="longitude">Longitude</string>
 </resources>

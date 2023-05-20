@@ -2,16 +2,6 @@ plugins {
     id 'com.android.application'
 }
 
-def keystoreProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withInputStream { stream ->
-        keystoreProperties.load(stream)
-    }
-}
-def apiKey = keystoreProperties['flickr.key']
-def apiSecret = keystoreProperties['flickr.secret']
-
 android {
     namespace 'com.example.geoimage'
     compileSdk 33
@@ -22,6 +12,16 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
+
+        def keystoreProperties = new Properties()
+        def localPropertiesFile = rootProject.file('secrets.properties')
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.withInputStream { stream ->
+                keystoreProperties.load(stream)
+            }
+        }
+        def apiKey = keystoreProperties['flickr.key']
+        def apiSecret = keystoreProperties['flickr.secret']
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "FLICKR_API_KEY", "\"${apiKey}\"")
